@@ -2,3 +2,8 @@
 /Cargo.lock
 
 **/.DS_Store
+
+.direnv
+
+# created by git-hooks.nix
+.pre-commit-config.yaml
