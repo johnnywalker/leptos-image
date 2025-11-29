@@ -1,6 +1,6 @@
 use crate::optimizer::*;
 
-use leptos::*;
+use leptos::prelude::*;
 use leptos_meta::Link;
 
 /**
@@ -34,12 +34,12 @@ pub fn Image(
     alt: String,
     /// Style class for image.
     #[prop(into, optional)]
-    class: Option<AttributeValue>,
+    class: Option<String>,
 ) -> impl IntoView {
     if src.starts_with("http") {
-        logging::debug_warn!("Image component only supports static images.");
+        leptos::logging::debug_warn!("Image component only supports static images.");
         let loading = if lazy { "lazy" } else { "eager" };
-        return view! { <img src=src alt=alt class=class loading=loading/> }.into_view();
+        return view! { <img src=src alt=alt class=class loading=loading/> }.into_any();
     }
 
     let blur_image = {
@@ -69,10 +69,10 @@ pub fn Image(
     // Retrieve value from Cache if it exists. Doing this per-image to allow image introspection.
     let resource = crate::use_image_cache_resource();
 
-    let blur_image = store_value(blur_image);
-    let opt_image = store_value(opt_image);
-    let alt = store_value(alt);
-    let class = store_value(class.map(|c| c.into_attribute_boxed()));
+    let blur_image = StoredValue::new(blur_image);
+    let opt_image = StoredValue::new(opt_image);
+    let alt = StoredValue::new(alt);
+    let class = StoredValue::new(class.map(|c| c.into_attribute_value()));
 
     view! {
         <Suspense fallback=|| ()>
@@ -100,7 +100,7 @@ pub fn Image(
                             let class = class.get_value();
                             let alt = alt.get_value();
                             view! { <CacheImage lazy svg opt_image alt class=class priority/> }
-                                .into_view()
+                                .into_any()
                         } else {
                             let loading = if lazy { "lazy" } else { "eager" };
                             view! {
@@ -112,13 +112,14 @@ pub fn Image(
                                     src=opt_image
                                 />
                             }
-                                .into_view()
+                                .into_any()
                         }
                     })
             }}
 
         </Suspense>
     }
+    .into_any()
 }
 
 enum SvgImage {
@@ -131,11 +132,11 @@ fn CacheImage(
     svg: SvgImage,
     #[prop(into)] opt_image: String,
     #[prop(into, optional)] alt: String,
-    class: Option<Attribute>,
+    class: Option<String>,
     priority: bool,
     lazy: bool,
 ) -> impl IntoView {
-    use base64::{engine::general_purpose, Engine as _};
+    use base64::{Engine as _, engine::general_purpose};
 
     let style = {
         let background_image = match svg {
@@ -147,8 +148,8 @@ fn CacheImage(
                 format!("url('{}')", svg_url)
             }
         };
-        let style= format!(
-        "color:transparent;background-size:cover;background-position:50% 50%;background-repeat:no-repeat;background-image:{background_image};",
+        let style = format!(
+            "color:transparent;background-size:cover;background-position:50% 50%;background-repeat:no-repeat;background-image:{background_image};",
         );
 
         style
@@ -158,9 +159,9 @@ fn CacheImage(
 
     view! {
         {if priority {
-            view! { <Link rel="preload" as_="image" href=opt_image.clone()/> }.into_view()
+            view! { <Link rel="preload" as_="image" href=opt_image.clone()/> }.into_any()
         } else {
-            ().into_view()
+            ().into_any()
         }}
 
         <img

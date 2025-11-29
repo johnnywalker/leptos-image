@@ -73,7 +73,7 @@ impl ImageOptimizer {
     pub fn provide_context(&self) -> impl Fn() + 'static + Clone + Send {
         let optimizer = self.clone();
         move || {
-            leptos::provide_context(optimizer.clone());
+            leptos::prelude::provide_context(optimizer.clone());
         }
     }
 
@@ -127,7 +127,7 @@ impl ImageOptimizer {
     }
 
     pub(crate) fn get_file_path(&self, cache_image: &CachedImage) -> String {
-        use base64::{engine::general_purpose, Engine as _};
+        use base64::{Engine as _, engine::general_purpose};
         // I'm worried this name will become too long.
         // names are limited to 255 bytes on most filesystems.
 
@@ -213,7 +213,7 @@ where
     let webp: WebPMemory = encoder.encode(80.0);
 
     // Encode the image to base64
-    use base64::{engine::general_purpose, Engine as _};
+    use base64::{Engine as _, engine::general_purpose};
     let encoded = general_purpose::STANDARD.encode(&*webp);
 
     let uri = format!("data:image/webp;base64,{}", encoded);
@@ -221,12 +221,12 @@ where
     let svg = format!(
         r#"
 <svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="100%" height="100%" viewBox="0 0 {svg_width} {svg_height}" preserveAspectRatio="none">
-    <filter id="a" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB"> 
-        <feGaussianBlur stdDeviation="{sigma}" edgeMode="duplicate"/> 
+    <filter id="a" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+        <feGaussianBlur stdDeviation="{sigma}" edgeMode="duplicate"/>
         <feComponentTransfer>
-            <feFuncA type="discrete" tableValues="1 1"/> 
-        </feComponentTransfer> 
-    </filter> 
+            <feFuncA type="discrete" tableValues="1 1"/>
+        </feComponentTransfer>
+    </filter>
     <image filter="url(#a)" x="0" y="0" height="100%" width="100%" href="{uri}"/>
 </svg>
 "#,
@@ -308,7 +308,7 @@ impl CachedImage {
 
     #[cfg(feature = "ssr")]
     pub(crate) fn get_file_path(&self) -> String {
-        use base64::{engine::general_purpose, Engine as _};
+        use base64::{Engine as _, engine::general_purpose};
         // I'm worried this name will become too long.
         // names are limited to 255 bytes on most filesystems.
 
@@ -330,7 +330,7 @@ impl CachedImage {
     #[cfg(feature = "ssr")]
     // TODO: Fix this. Super Yuck.
     pub(crate) fn from_file_path(path: &str) -> Option<Self> {
-        use base64::{engine::general_purpose, Engine as _};
+        use base64::{Engine as _, engine::general_purpose};
         path.split('/')
             .filter_map(|s| {
                 general_purpose::STANDARD
