@@ -26,6 +26,11 @@ rustPlatform.buildRustPackage rec {
   env =
     {
       OPENSSL_NO_VENDOR = 1;
+      # disable implicit use of `rust-lld` for now due to incomplete rpath (openssl)
+      # - https://github.com/nix-community/fenix/issues/191
+      # - https://github.com/nix-community/fenix/issues/159
+      # - https://github.com/NixOS/nixpkgs/issues/24744
+      RUSTFLAGS = "-C linker-features=-lld";
     }
     // lib.optionalAttrs stdenv.hostPlatform.isDarwin {
       # Fix for C++ compiler version on darwin for wasm-opt
