@@ -4,7 +4,7 @@
     nixpkgs-unstable.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
 
     fenix.url = "github:nix-community/fenix";
-    fenix.inputs.nixpkgs.follows = "nixpkgs";
+    fenix.inputs.nixpkgs.follows = "nixpkgs-unstable";
 
     git-hooks.url = "github:cachix/git-hooks.nix";
     git-hooks.inputs.nixpkgs.follows = "nixpkgs";
@@ -42,7 +42,11 @@
       };
 
     overlays = [
-      fenix.overlays.default
+      (_: prev: let
+        pkgs = fenix.inputs.nixpkgs.legacyPackages.${prev.system};
+      in
+        # use pkgs from fenix input
+        fenix.overlays.default pkgs pkgs)
       (final: prev: {unstable = import nixpkgs-unstable {inherit (prev) system;};})
       (final: prev: {
         rustToolchain = with prev.fenix;
@@ -52,16 +56,16 @@
           ];
 
         cargo-leptos = overlayRustPackage {
-          # inherit final prev;
-          final = prev.unstable;
-          prev = prev.unstable;
+          inherit final prev;
           old = "cargo-leptos";
           # use newer rustc
-          inherit (prev.unstable) rustPlatform;
-          # NOTE: ran into error linking dependencies using makeRustPlatform
-          # rustPlatform = prev.makeRustPlatform {
-          #   inherit (prev.fenix.stable.toolchain) cargo rustc;
-          # };
+          rustPlatform = let
+            toolchain = prev.fenix.stable.toolchain;
+          in
+            prev.makeRustPlatform {
+              cargo = toolchain;
+              rustc = toolchain;
+            };
           # use newer version of cargo-leptos to match wasm-bindgen in Cargo.toml
           override = args: rec {
             version = "0.2.44";
@@ -71,8 +75,13 @@
               rev = "v${version}";
               hash = "sha256-Kef0o2te5rj0+f+kY96BQzcIByWCp2ccCLT3UiYEGUg=";
             };
-
             cargoHash = "sha256-SfQ6W8FMy2TT9V19HEQGgbJxTxs9Ssm/ZusHvKEJc8o=";
+            # copy from unstable
+            nativeBuildInputs = with prev; [pkg-config]; # for openssl-sys
+            buildInputs = with prev; [openssl]; # for openssl-sys
+            env = {
+              OPENSSL_NO_VENDOR = 1; # for openssl-sys
+            };
           };
         };
 
