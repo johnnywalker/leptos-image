@@ -22,25 +22,6 @@
   }: let
     supportedSystems = ["x86_64-linux" "aarch64-linux" "x86_64-darwin" "aarch64-darwin"];
 
-    overlayRustPackage = {
-      rustPlatform,
-      final,
-      prev,
-      old,
-      override,
-    }:
-      final.callPackage prev.${old}.override {
-        rustPlatform =
-          rustPlatform
-          // {
-            buildRustPackage = args:
-              rustPlatform.buildRustPackage (
-                args
-                // (override args)
-              );
-          };
-      };
-
     overlays = [
       (_: prev: let
         pkgs = fenix.inputs.nixpkgs.legacyPackages.${prev.system};
@@ -48,40 +29,19 @@
         # use pkgs from fenix input
         fenix.overlays.default pkgs pkgs)
       (final: prev: {unstable = import nixpkgs-unstable {inherit (prev) system;};})
-      (final: prev: {
+      (final: prev: rec {
         rustToolchain = with prev.fenix;
           combine [
             stable.toolchain
             targets.wasm32-unknown-unknown.stable.rust-std
           ];
 
-        cargo-leptos = overlayRustPackage {
-          inherit final prev;
-          old = "cargo-leptos";
+        # use newer version to align with Cargo.toml
+        cargo-leptos = prev.callPackage ./cargo-leptos.nix {
           # use newer rustc
-          rustPlatform = let
-            toolchain = prev.fenix.stable.toolchain;
-          in
-            prev.makeRustPlatform {
-              cargo = toolchain;
-              rustc = toolchain;
-            };
-          # use newer version of cargo-leptos to match wasm-bindgen in Cargo.toml
-          override = args: rec {
-            version = "0.2.44";
-            src = prev.fetchFromGitHub {
-              owner = "leptos-rs";
-              repo = "cargo-leptos";
-              rev = "v${version}";
-              hash = "sha256-Kef0o2te5rj0+f+kY96BQzcIByWCp2ccCLT3UiYEGUg=";
-            };
-            cargoHash = "sha256-SfQ6W8FMy2TT9V19HEQGgbJxTxs9Ssm/ZusHvKEJc8o=";
-            # copy from unstable
-            nativeBuildInputs = with prev; [pkg-config]; # for openssl-sys
-            buildInputs = with prev; [openssl]; # for openssl-sys
-            env = {
-              OPENSSL_NO_VENDOR = 1; # for openssl-sys
-            };
+          rustPlatform = prev.makeRustPlatform {
+            cargo = rustToolchain;
+            rustc = rustToolchain;
           };
         };
 
