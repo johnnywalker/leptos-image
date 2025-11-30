@@ -1,18 +1,18 @@
 #[cfg(feature = "ssr")]
 #[tokio::main]
 async fn main() {
-    use axum::{routing::post, Router};
-    use leptos::*;
-    use leptos_axum::{generate_route_list, handle_server_fns, LeptosRoutes};
+    use axum::Router;
+    use leptos::logging;
+    use leptos::prelude::*;
+    use leptos_axum::{LeptosRoutes, generate_route_list};
     use leptos_image::*;
     use start_axum::app::*;
-    use start_axum::fileserv::file_and_error_handler;
     use tokio::net::TcpListener;
 
     // Composite App State with the optimizer and leptos options.
     #[derive(Clone, axum::extract::FromRef)]
     struct AppState {
-        leptos_options: leptos::LeptosOptions,
+        leptos_options: LeptosOptions,
         optimizer: leptos_image::ImageOptimizer,
     }
     simple_logger::init_with_level(log::Level::Info).expect("couldn't initialize logging");
@@ -22,14 +22,12 @@ async fn main() {
     // <https://github.com/leptos-rs/start-axum#executing-a-server-on-a-remote-machine-without-the-toolchain>
     // Alternately a file can be specified such as Some("Cargo.toml")
     // The file would need to be included with the executable when moved to deployment
-    let conf = get_configuration(None).await.unwrap();
+    let conf = get_configuration(None).unwrap();
     let leptos_options = conf.leptos_options;
     let addr = leptos_options.site_addr;
     let routes = generate_route_list(App);
 
-    let conf = get_configuration(None).await.unwrap();
-    let leptos_options = conf.leptos_options;
-    let root = leptos_options.site_root.clone();
+    let root = leptos_options.site_root.to_string();
 
     let state = AppState {
         leptos_options,
@@ -38,12 +36,17 @@ async fn main() {
 
     // Build Router.
     let app = Router::new()
-        .route("/api/*fn_name", post(handle_server_fns))
         // Add a handler for serving the cached images.
         .image_cache_route(&state)
         // Provide the optimizer to leptos context.
-        .leptos_routes_with_context(&state, routes, state.optimizer.provide_context(), App)
-        .fallback(file_and_error_handler)
+        .leptos_routes_with_context(&state, routes, state.optimizer.provide_context(), {
+            let leptos_options = state.leptos_options.clone();
+            move || shell(leptos_options.clone())
+        })
+        .fallback(leptos_axum::file_and_error_handler_with_context::<
+            AppState,
+            _,
+        >(state.optimizer.provide_context(), shell))
         .with_state(state);
 
     // run our app with hyper

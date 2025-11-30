@@ -1,44 +1,44 @@
 [package]
 name = "start-axum"
 version = "0.1.0"
-edition = "2021"
+edition = "2024"
 
 [lib]
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]
-axum = { version = "0.7", optional = true , features = ["macros"]}
-console_error_panic_hook = "0.1"
-leptos = { version = "0.6", features = ["nightly"] }
-leptos_axum = { version = "0.6", optional = true }
-leptos_meta = { version = "0.6", features = ["nightly"] }
-leptos_router = { version = "0.6", features = ["nightly"] }
-tokio = { version = "1", features = ["rt-multi-thread"], optional = true }
-tower = { version = "0.4", optional = true }
-tower-http = { version = "0.5", features = ["fs"], optional = true }
-wasm-bindgen = "=0.2.89"
-thiserror = "1"
-tracing = { version = "0.1", optional = true }
-http = "1"
-
+axum = { version = "0.8", optional = true , features = ["macros"]}
 cfg-if = "1"
+console_error_panic_hook = { version = "0.1", optional = true }
+http = "1"
+leptos = { version = "0.8", features = ["nightly"] }
+leptos_axum = { version = "0.8", optional = true }
 leptos_image = { path = "../../" }
-simple_logger = "4"
+leptos_meta = { version = "0.8" }
+leptos_router = { version = "0.8", features = ["nightly"] }
 log = "0.4"
+simple_logger = "4"
+thiserror = "1"
+tokio = { version = "1", features = ["rt-multi-thread"], optional = true }
+tracing = { version = "0.1", optional = true }
+wasm-bindgen = { version = "=0.2.103", optional = true }
 
 [features]
-hydrate = ["leptos/hydrate", "leptos_meta/hydrate", "leptos_router/hydrate", "leptos_image/hydrate"]
+hydrate = [
+    "leptos/hydrate",
+    "leptos_image/hydrate",
+    "dep:console_error_panic_hook",
+    "dep:wasm-bindgen",
+]
 ssr = [
     "dep:axum",
     "dep:tokio",
-    "dep:tower",
-    "dep:tower-http",
+    "dep:tracing",
     "dep:leptos_axum",
     "leptos/ssr",
+    "leptos_image/ssr",
     "leptos_meta/ssr",
     "leptos_router/ssr",
-    "dep:tracing",
-    "leptos_image/ssr"
 ]
 
 [package.metadata.cargo-all-features]
